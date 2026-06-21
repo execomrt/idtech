@@ -411,6 +411,17 @@ bool load(const std::vector<uint8_t>& data, BSPScene& scene) {
             });
         }
 
+        const auto& first = scene.vertices[firstVertex + 0].position;
+        const auto& second = scene.vertices[firstVertex + 1].position;
+        const auto& third = scene.vertices[firstVertex + 2].position;
+        const float3 geometricNormal =
+            float3::cross(second - first, third - first);
+        if (float3::dot(geometricNormal, normal) < 0.0f) {
+            std::reverse(
+                scene.vertices.begin() + firstVertex,
+                scene.vertices.begin() + firstVertex + faceEdgeCount);
+        }
+
         const uint32_t firstIndex = static_cast<uint32_t>(scene.indices.size());
         for (uint32_t i = 1; i + 1 < faceEdgeCount; ++i) {
             scene.indices.push_back(firstVertex);

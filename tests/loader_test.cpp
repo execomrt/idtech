@@ -98,6 +98,29 @@ int main(int argc, char** argv) {
         << scene.lightmapAtlas.texture.pixels.size() << " bytes)\n"
         << "Entity text: " << scene.entities.size() << " bytes\n";
 
+    std::size_t windingMatchesNormal = 0;
+    std::size_t windingOpposesNormal = 0;
+    for (const auto& face : scene.faces) {
+        if (face.vertexCount < 3) {
+            continue;
+        }
+        const auto& a = scene.vertices[face.firstVertex + 0];
+        const auto& b = scene.vertices[face.firstVertex + 1];
+        const auto& c = scene.vertices[face.firstVertex + 2];
+        const auto geometricNormal = idtech::float3::cross(
+            b.position - a.position,
+            c.position - a.position);
+        if (idtech::float3::dot(geometricNormal, a.normal) >= 0.0f) {
+            ++windingMatchesNormal;
+        } else {
+            ++windingOpposesNormal;
+        }
+    }
+    std::cout
+        << "Face winding vs normal: "
+        << windingMatchesNormal << " matching, "
+        << windingOpposesNormal << " opposing\n";
+
     for (std::size_t materialIndex = 0;
          materialIndex < scene.materials.size();
          ++materialIndex) {
