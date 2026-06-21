@@ -167,6 +167,29 @@ std::optional<WadMipTexture> WadArchive::readMipTexture(std::size_t index) const
         texture.mipPixels[level].assign(begin, begin + byteCount);
     }
 
+    const uint64_t paletteOffset =
+        static_cast<uint64_t>(texture.mipOffsets[3]) +
+        texture.mipPixels[3].size();
+    if (paletteOffset + sizeof(uint16_t) <= entry.size) {
+        uint16_t colorCount = 0;
+        std::memcpy(
+            &colorCount,
+            m_data.data() + entry.offset + paletteOffset,
+            sizeof(colorCount));
+
+        const uint64_t paletteBytes =
+            static_cast<uint64_t>(colorCount) * 3;
+        if (colorCount != 0 &&
+            paletteOffset + sizeof(uint16_t) + paletteBytes <= entry.size) {
+            const auto paletteBegin =
+                m_data.begin() + entry.offset + paletteOffset +
+                sizeof(uint16_t);
+            texture.palette.assign(
+                paletteBegin,
+                paletteBegin + paletteBytes);
+        }
+    }
+
     return texture;
 }
 

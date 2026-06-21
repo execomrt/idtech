@@ -25,6 +25,7 @@ struct WadMipTexture {
     uint32_t height = 0;
     uint32_t mipOffsets[4]{};
     std::array<std::vector<uint8_t>, 4> mipPixels;
+    std::vector<uint8_t> palette;
 };
 
 class WadArchive {

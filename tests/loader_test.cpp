@@ -98,6 +98,22 @@ int main(int argc, char** argv) {
         << scene.lightmapAtlas.texture.pixels.size() << " bytes)\n"
         << "Entity text: " << scene.entities.size() << " bytes\n";
 
+    for (std::size_t materialIndex = 0;
+         materialIndex < scene.materials.size();
+         ++materialIndex) {
+        if (scene.materials[materialIndex].renderable) {
+            continue;
+        }
+        std::size_t faceCount = 0;
+        for (const auto& face : scene.faces) {
+            faceCount += face.materialId == materialIndex ? 1 : 0;
+        }
+        std::cout
+            << "Tool material skipped: "
+            << scene.materials[materialIndex].name
+            << " (" << faceCount << " faces)\n";
+    }
+
     const auto playerStart = findPlayerStart(scene.entities);
     if (!playerStart.empty()) {
         std::cout << "info_player_start origin: " << playerStart << '\n';
@@ -155,9 +171,27 @@ int main(int argc, char** argv) {
         }
 
         std::size_t resolvedMaterials = 0;
-        for (const auto& material : scene.materials) {
-            if (!material.name.empty() && wad.find(material.name) != nullptr) {
+        for (std::size_t materialIndex = 0;
+             materialIndex < scene.materials.size();
+             ++materialIndex) {
+            const auto& material = scene.materials[materialIndex];
+            const auto lookupName = material.externalName.empty()
+                ? material.name
+                : material.externalName;
+            if (!lookupName.empty() && wad.find(lookupName) != nullptr) {
                 ++resolvedMaterials;
+            } else {
+                std::size_t faceCount = 0;
+                for (const auto& face : scene.faces) {
+                    faceCount += face.materialId == materialIndex ? 1 : 0;
+                }
+                std::cout
+                    << "  unresolved material[" << materialIndex << "]: "
+                    << material.name;
+                if (!material.externalName.empty()) {
+                    std::cout << " -> " << material.externalName;
+                }
+                std::cout << " (" << faceCount << " faces)\n";
             }
         }
 
@@ -220,8 +254,15 @@ int main(int argc, char** argv) {
         << "Created textures: " << createdTextures << '\n'
         << "Created buffers: " << createdBuffers << '\n';
 
+    uint64_t expectedRenderableIndices = 0;
+    for (const auto& face : scene.faces) {
+        if (face.materialId < scene.materials.size() &&
+            scene.materials[face.materialId].renderable) {
+            expectedRenderableIndices += face.indexCount;
+        }
+    }
     if (drawCalls != renderer.getDrawBatches().size() ||
-        drawnIndices != scene.indices.size()) {
+        drawnIndices != expectedRenderableIndices) {
         std::cerr << "Renderer batch callback validation failed\n";
         return 7;
     }
@@ -230,7 +271,11 @@ int main(int argc, char** argv) {
     drawnIndices = 0;
     uint64_t expectedVisibleIndices = 0;
     for (const uint32_t faceIndex : exploration.visibleFaces) {
-        expectedVisibleIndices += scene.faces[faceIndex].indexCount;
+        const auto& face = scene.faces[faceIndex];
+        if (face.materialId < scene.materials.size() &&
+            scene.materials[face.materialId].renderable) {
+            expectedVisibleIndices += face.indexCount;
+        }
     }
     if (!renderer.renderVisible(cameraPosition) ||
         drawCalls != renderer.getVisibleDrawBatches().size() ||

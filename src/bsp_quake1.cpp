@@ -1,6 +1,7 @@
 #include "bsp_quake1.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -64,6 +65,24 @@ bool parseMaterials(
     const std::vector<uint8_t>& textureData,
     std::vector<Material>& materials)
 {
+    const auto isToolMaterial = [](std::string_view name) {
+        std::string lower(name);
+        std::transform(
+            lower.begin(),
+            lower.end(),
+            lower.begin(),
+            [](unsigned char value) {
+                return static_cast<char>(std::tolower(value));
+            });
+        return lower == "aaatrigger" ||
+            lower == "clip" ||
+            lower == "skip" ||
+            lower == "hint" ||
+            lower == "origin" ||
+            lower == "null" ||
+            lower == "bevel";
+    };
+
     materials.clear();
     if (textureData.empty()) {
         return true;
@@ -110,8 +129,21 @@ bool parseMaterials(
             std::find(std::begin(texture.name), std::end(texture.name), '\0') -
             std::begin(texture.name);
         material.name.assign(texture.name, nameLength);
+        if (texture.offsets[0] != 0 &&
+            texture.offsets[0] < textureData.size() - offset) {
+            const auto* externalName = reinterpret_cast<const char*>(
+                textureData.data() + offset + texture.offsets[0]);
+            const std::size_t capacity =
+                textureData.size() - offset - texture.offsets[0];
+            const auto* externalEnd = std::find(
+                externalName,
+                externalName + capacity,
+                '\0');
+            material.externalName.assign(externalName, externalEnd);
+        }
         material.translucent =
             !material.name.empty() && material.name.front() == '*';
+        material.renderable = !isToolMaterial(material.name);
         material.alpha = material.translucent ? 0.75f : 1.0f;
     }
 

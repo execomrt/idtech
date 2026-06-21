@@ -103,7 +103,7 @@ bool BSPRenderer::createTextures() {
             material.albedo.channels,
             material.albedo.pixels.data(),
             label.c_str()
-        };
+        };        
         m_albedoTextures[i] = callback(desc);
         if (!m_albedoTextures[i].valid()) {
             return false;
@@ -124,6 +124,10 @@ void BSPRenderer::buildDrawBatches() {
     for (std::size_t materialIndex = 0;
          materialIndex < scene.materials.size();
          ++materialIndex) {
+        if (!scene.materials[materialIndex].renderable) {
+            continue;
+        }
+
         BSPDrawBatch batch;
         batch.firstIndex = static_cast<uint32_t>(m_renderIndices.size());
         batch.materialIndex = static_cast<uint32_t>(materialIndex);
@@ -179,6 +183,10 @@ void BSPRenderer::buildVisibleDrawBatches() {
     for (std::size_t materialIndex = 0;
          materialIndex < scene.materials.size();
          ++materialIndex) {
+        if (!scene.materials[materialIndex].renderable) {
+            continue;
+        }
+
         BSPDrawBatch current;
         bool hasCurrent = false;
 

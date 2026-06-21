@@ -78,8 +78,10 @@ struct FaceInfo {
 
 struct Material {
     std::string name;
+    std::string externalName;
     int textureIndex = -1;
     bool translucent = false;
+    bool renderable = true;
     float alpha = 1.0f;
     CpuTexture albedo;
 };
