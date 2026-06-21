@@ -42,7 +42,6 @@ int main(int argc, char** argv) {
 
     std::size_t textureCount = 0;
     std::size_t textureBytes = 0;
-    std::size_t embeddedPalettes = 0;
     std::cout
         << "Loaded: " << wadPath << '\n'
         << "File size: " << bytes.size() << " bytes\n"
@@ -59,9 +58,6 @@ int main(int argc, char** argv) {
         for (const auto& mip : texture->mipPixels) {
             textureBytes += mip.size();
         }
-        if (texture->palette.size() >= 256 * 3) {
-            ++embeddedPalettes;
-        }
         if (textureCount <= 8) {
             std::cout
                 << "  " << texture->name << ": "
@@ -71,8 +67,7 @@ int main(int argc, char** argv) {
 
     std::cout
         << "Valid mip textures: " << textureCount << '\n'
-        << "Decoded indexed pixels: " << textureBytes << " bytes\n"
-        << "Embedded palettes: " << embeddedPalettes << '\n';
+        << "Decoded indexed pixels: " << textureBytes << " bytes\n";
     if (textureCount == 0) {
         std::cerr << "WAD contains no valid mip textures\n";
         return 3;

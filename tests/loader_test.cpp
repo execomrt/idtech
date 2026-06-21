@@ -98,45 +98,6 @@ int main(int argc, char** argv) {
         << scene.lightmapAtlas.texture.pixels.size() << " bytes)\n"
         << "Entity text: " << scene.entities.size() << " bytes\n";
 
-    std::size_t windingMatchesNormal = 0;
-    std::size_t windingOpposesNormal = 0;
-    for (const auto& face : scene.faces) {
-        if (face.vertexCount < 3) {
-            continue;
-        }
-        const auto& a = scene.vertices[face.firstVertex + 0];
-        const auto& b = scene.vertices[face.firstVertex + 1];
-        const auto& c = scene.vertices[face.firstVertex + 2];
-        const auto geometricNormal = idtech::float3::cross(
-            b.position - a.position,
-            c.position - a.position);
-        if (idtech::float3::dot(geometricNormal, a.normal) >= 0.0f) {
-            ++windingMatchesNormal;
-        } else {
-            ++windingOpposesNormal;
-        }
-    }
-    std::cout
-        << "Face winding vs normal: "
-        << windingMatchesNormal << " matching, "
-        << windingOpposesNormal << " opposing\n";
-
-    for (std::size_t materialIndex = 0;
-         materialIndex < scene.materials.size();
-         ++materialIndex) {
-        if (scene.materials[materialIndex].renderable) {
-            continue;
-        }
-        std::size_t faceCount = 0;
-        for (const auto& face : scene.faces) {
-            faceCount += face.materialId == materialIndex ? 1 : 0;
-        }
-        std::cout
-            << "Tool material skipped: "
-            << scene.materials[materialIndex].name
-            << " (" << faceCount << " faces)\n";
-    }
-
     const auto playerStart = findPlayerStart(scene.entities);
     if (!playerStart.empty()) {
         std::cout << "info_player_start origin: " << playerStart << '\n';
@@ -194,27 +155,9 @@ int main(int argc, char** argv) {
         }
 
         std::size_t resolvedMaterials = 0;
-        for (std::size_t materialIndex = 0;
-             materialIndex < scene.materials.size();
-             ++materialIndex) {
-            const auto& material = scene.materials[materialIndex];
-            const auto lookupName = material.externalName.empty()
-                ? material.name
-                : material.externalName;
-            if (!lookupName.empty() && wad.find(lookupName) != nullptr) {
+        for (const auto& material : scene.materials) {
+            if (!material.name.empty() && wad.find(material.name) != nullptr) {
                 ++resolvedMaterials;
-            } else {
-                std::size_t faceCount = 0;
-                for (const auto& face : scene.faces) {
-                    faceCount += face.materialId == materialIndex ? 1 : 0;
-                }
-                std::cout
-                    << "  unresolved material[" << materialIndex << "]: "
-                    << material.name;
-                if (!material.externalName.empty()) {
-                    std::cout << " -> " << material.externalName;
-                }
-                std::cout << " (" << faceCount << " faces)\n";
             }
         }
 
@@ -277,15 +220,8 @@ int main(int argc, char** argv) {
         << "Created textures: " << createdTextures << '\n'
         << "Created buffers: " << createdBuffers << '\n';
 
-    uint64_t expectedRenderableIndices = 0;
-    for (const auto& face : scene.faces) {
-        if (face.materialId < scene.materials.size() &&
-            scene.materials[face.materialId].renderable) {
-            expectedRenderableIndices += face.indexCount;
-        }
-    }
     if (drawCalls != renderer.getDrawBatches().size() ||
-        drawnIndices != expectedRenderableIndices) {
+        drawnIndices != scene.indices.size()) {
         std::cerr << "Renderer batch callback validation failed\n";
         return 7;
     }
@@ -294,11 +230,7 @@ int main(int argc, char** argv) {
     drawnIndices = 0;
     uint64_t expectedVisibleIndices = 0;
     for (const uint32_t faceIndex : exploration.visibleFaces) {
-        const auto& face = scene.faces[faceIndex];
-        if (face.materialId < scene.materials.size() &&
-            scene.materials[face.materialId].renderable) {
-            expectedVisibleIndices += face.indexCount;
-        }
+        expectedVisibleIndices += scene.faces[faceIndex].indexCount;
     }
     if (!renderer.renderVisible(cameraPosition) ||
         drawCalls != renderer.getVisibleDrawBatches().size() ||
