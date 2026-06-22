@@ -143,6 +143,8 @@ bool parseMaterials(
         }
         material.translucent =
             !material.name.empty() && material.name.front() == '*';
+        material.masked =
+            !material.name.empty() && material.name.front() == '{';
         material.renderable = !isToolMaterial(material.name);
         material.alpha = material.translucent ? 0.75f : 1.0f;
     }

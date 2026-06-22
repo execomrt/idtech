@@ -81,6 +81,7 @@ struct Material {
     std::string externalName;
     int textureIndex = -1;
     bool translucent = false;
+    bool masked = false;
     bool renderable = true;
     float alpha = 1.0f;
     CpuTexture albedo;
