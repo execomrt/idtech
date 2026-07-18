@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.20)
 
 project(idtech LANGUAGES CXX)
 
+option(
+    IDTECH_USE_GNU_CXX20
+    "Use the GNU C++20 dialect instead of CMake's cxx_std_20 feature"
+    OFF
+)
+
 add_library(idtech
     src/bsp_explorer.cpp
     src/bsp_explorer.hpp
@@ -20,7 +26,13 @@ add_library(idtech
 
 add_library(idtech::idtech ALIAS idtech)
 
-target_compile_features(idtech PUBLIC cxx_std_20)
+if(IDTECH_USE_GNU_CXX20)
+    target_compile_options(idtech PUBLIC
+        "$<$<COMPILE_LANGUAGE:CXX>:-std=gnu++20>"
+    )
+else()
+    target_compile_features(idtech PUBLIC cxx_std_20)
+endif()
 
 target_include_directories(idtech
     PUBLIC
@@ -40,7 +52,6 @@ if(IDTECH_BUILD_LOADER_TEST)
     )
 
     target_link_libraries(idtech_loader_test PRIVATE idtech::idtech)
-    target_compile_features(idtech_loader_test PRIVATE cxx_std_20)
     target_compile_definitions(idtech_loader_test PRIVATE
         IDTECH_TEST_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets"
     )
@@ -50,7 +61,6 @@ if(IDTECH_BUILD_LOADER_TEST)
     )
 
     target_link_libraries(idtech_wad_test PRIVATE idtech::idtech)
-    target_compile_features(idtech_wad_test PRIVATE cxx_std_20)
     target_compile_definitions(idtech_wad_test PRIVATE
         IDTECH_TEST_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets"
     )
@@ -60,7 +70,6 @@ if(IDTECH_BUILD_LOADER_TEST)
     )
 
     target_link_libraries(idtech_lightmap_packer_test PRIVATE idtech::idtech)
-    target_compile_features(idtech_lightmap_packer_test PRIVATE cxx_std_20)
 
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT idtech_loader_test)
 endif()
